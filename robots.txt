@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://hgmgrouphq.com/sitemap.xml
