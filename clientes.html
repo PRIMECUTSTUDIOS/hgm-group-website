@@ -1,0 +1,66 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Portal de clientes | HGM Group</title><meta name="robots" content="noindex,nofollow"><style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090c12;color:#f4f5f8}header{padding:24px max(20px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #303745}header a{color:#e1bf76;text-decoration:none}.logo{font-weight:900;letter-spacing:.09em}main{max-width:1120px;margin:0 auto;padding:55px 20px 100px}h1{font-size:clamp(32px,6vw,56px);line-height:1.1;margin:6px 0 14px}.lead{color:#b7bfcd;line-height:1.6;max-width:760px}.card{border:1px solid #323a49;background:#131823;border-radius:18px;padding:25px;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.grid .card{margin:0}label{display:block;color:#bdc8d8;font-size:13px;margin:15px 0 7px}input,select{width:100%;padding:12px;border:1px solid #424b5a;background:#0c1018;color:#fff;border-radius:9px}button,.btn{padding:12px 18px;background:#e1bf76;color:#171a22;border:0;border-radius:10px;font-weight:800;cursor:pointer;display:inline-block;text-decoration:none;margin-top:12px}button:disabled{opacity:.5;cursor:wait}.secondary{background:#323b4a;color:#fff}.small{font-size:13px;color:#aeb7c6}.status{color:#e1bf76;white-space:pre-wrap}table{width:100%;border-collapse:collapse;display:block;overflow:auto}td,th{padding:10px;border-bottom:1px solid #354054;text-align:left;white-space:nowrap}th{font-size:13px;color:#bbc5d5}.hidden{display:none}.tag{font-size:12px;border-radius:100px;padding:4px 10px;background:#263b40}#signin{min-height:45px}</style></head><body><header><a class="logo" href="/">HGM GROUP LLC</a><a href="/pagos.html">Pagos</a></header><main><p class="small">PORTAL SEGURO DE SERVICIOS</p><h1>Tu negocio, bajo control.</h1><p class="lead">Inicia sesión con la cuenta Google asociada a tu contrato para consultar tus sitios web, el estado de tus pagos y tus servicios de HGM Group.</p>
+<section class="card" id="login"><h2>Acceso de clientes</h2><div id="signin"></div><p class="small">Solamente las cuentas registradas por HGM Group pueden consultar información de sus servicios.</p><p id="login-error" class="status"></p></section>
+<section id="workspace" class="hidden"><div class="card"><span id="identity"></span> <button class="secondary" id="logout">Cerrar sesión</button></div><h2>Mis páginas y suscripciones</h2><div id="my-sites" class="grid"></div><p class="small">Tus pagos se procesan en PayPal. Una suscripción autorizada no equivale por sí sola a una mensualidad pagada. Si necesitas una factura o aclaración, contacta con HGM Group.</p><a href="/pagos.html" class="btn">Ver opciones de pago</a></section>
+<section id="admin" class="hidden"><h2>Administración HGM Group</h2><p class="small">Los proyectos se verifican contra Vercel antes de asociarlos; la suspensión queda desactivada por defecto.</p><div class="grid">
+<div class="card"><h3>Registrar cliente</h3><label>Nombre</label><input id="client-name" autocomplete="off"><label>Correo Google del cliente</label><input id="client-email" type="email" autocomplete="off"><button id="add-client">Crear cliente</button></div>
+<div class="card"><h3>Asignar proyecto Vercel</h3><label>Cliente</label><select id="client-select"></select><label>Proyecto Vercel (prj_...)</label><input id="site-project"><label>Equipo Vercel (team_...)</label><input id="site-team"><label>Dominio</label><input id="site-domain"><button id="assign-site">Asignar proyecto</button></div>
+<div class="card"><h3>Vincular PayPal</h3><label>Página</label><select id="site-select"></select><label>ID de suscripción (I-...)</label><input id="paypal-id"><p class="small">El titular y plan deben coincidir con PayPal. El ID del plan por sí solo no identifica al cliente.</p><button id="link-subscription">Vincular suscripción</button></div></div>
+<div class="card"><h3>Clientes</h3><table><thead><tr><th>Nombre</th><th>Correo</th><th>Estado</th></tr></thead><tbody id="clients-table"></tbody></table></div>
+<div class="card"><h3>Proyectos asignados</h3><table><thead><tr><th>Dominio</th><th>Vercel ID</th><th>Estado</th><th>Cliente</th></tr></thead><tbody id="sites-table"></tbody></table></div>
+</section><p id="feedback" class="status" role="status" aria-live="polite"></p></main>
+<script src="https://accounts.google.com/gsi/client" async defer></script><script>
+let token='',current=null;
+const $=id=>document.getElementById(id);
+const mk=(tag,value)=>{const e=document.createElement(tag);e.textContent=String(value??'');return e};
+async function api(action,method='GET',data){
+ const r=await fetch('/api/portal?action='+encodeURIComponent(action),{method,headers:{'Authorization':'Bearer '+token,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined,cache:'no-store'});
+ const v=await r.json().catch(()=>({error:'Respuesta inválida'}));if(!r.ok)throw Error(v.error||'Error del servidor');return v;
+}
+function siteCard(site){
+ const c=document.createElement('article');c.className='card';
+ c.append(mk('h3',site.domain||site.vercel_project_id));
+ c.append(mk('p','Estado del servicio: '+(site.site_status||'Pendiente')));
+ const sub=site.subscription;
+ c.append(mk('p',sub?'Suscripción: '+sub.status:'Suscripción pendiente de vinculación'));
+ if(sub?.due_at)c.append(mk('p','Próximo vencimiento registrado: '+new Date(sub.due_at).toLocaleDateString()));
+ const a=document.createElement('a');a.href='/pagos.html';a.className='btn';a.textContent='Gestionar pagos';c.append(a);return c;
+}
+function cell(tr,text){tr.append(mk('td',text))}
+function renderAdmin(data){
+ $('client-select').replaceChildren();$('site-select').replaceChildren();
+ $('clients-table').replaceChildren();$('sites-table').replaceChildren();
+ for(const c of data.clients){
+  const o=document.createElement('option');o.value=c.client_id;o.textContent=c.name+' — '+c.email;$('client-select').append(o);
+  const tr=document.createElement('tr');[c.name,c.email,c.status].forEach(v=>cell(tr,v));$('clients-table').append(tr);
+ }
+ for(const s of data.sites){
+  const o=document.createElement('option');o.value=s.site_id;o.textContent=s.domain||s.vercel_project_id;$('site-select').append(o);
+  const tr=document.createElement('tr');[s.domain,s.vercel_project_id,s.site_status,s.client_id].forEach(v=>cell(tr,v));$('sites-table').append(tr);
+ }
+}
+async function refresh(){
+ const me=await api('me');current=me;$('login').classList.add('hidden');$('workspace').classList.remove('hidden');
+ $('identity').textContent='Conectado: '+me.email;$('my-sites').replaceChildren(...me.sites.map(siteCard));
+ if(!me.sites.length)$('my-sites').append(mk('p','Aún no tienes proyectos asociados a esta cuenta.'));
+ if(me.admin){$('admin').classList.remove('hidden');renderAdmin(await api('admin'))}
+}
+async function mutate(action,data){
+ $('feedback').textContent='Procesando...';
+ try{await api(action,'POST',data);$('feedback').textContent='Registro guardado y verificado.';await refresh()}
+ catch(e){$('feedback').textContent=e.message}
+}
+$('add-client').onclick=()=>mutate('add-client',{name:$('client-name').value,email:$('client-email').value});
+$('assign-site').onclick=()=>mutate('assign-site',{clientId:$('client-select').value,vercelProjectId:$('site-project').value.trim(),vercelTeamId:$('site-team').value.trim(),domain:$('site-domain').value.trim()});
+$('link-subscription').onclick=()=>mutate('link-subscription',{siteId:$('site-select').value,paypalSubscriptionId:$('paypal-id').value.trim()});
+$('logout').onclick=()=>{token='';current=null;$('workspace').classList.add('hidden');$('admin').classList.add('hidden');$('login').classList.remove('hidden');google.accounts.id.disableAutoSelect()};
+async function boot(){
+ try{
+  const r=await fetch('/api/portal?action=config',{cache:'no-store'});if(!r.ok)throw Error('El acceso de clientes todavía no está configurado en el servidor.');
+  const data=await r.json();
+  if(!window.google?.accounts?.id){setTimeout(boot,500);return}
+  google.accounts.id.initialize({client_id:data.googleClientId,callback:async response=>{token=response.credential;try{await refresh()}catch(e){token='';$('login-error').textContent=e.message}}});
+  google.accounts.id.renderButton($('signin'),{theme:'filled_black',size:'large',text:'signin_with',shape:'rectangular'});
+ }catch(e){$('login-error').textContent=e.message}
+}boot();
+</script></body></html>
