@@ -55,7 +55,10 @@ module.exports=async function handler(req,res){
    if(subscription.plan_id!=='P-5SD11848RB0454849NLUV7CA')throw fail('PayPal plan does not match HGM plan',409);
    if(subscription.subscriber?.email_address?.toLowerCase()!==customer.email.toLowerCase())throw fail('PayPal payer email does not match client; manual validation required',409);
    const id=uid();
-   await append('Subscriptions',{subscription_id:id,client_id:site.client_id,site_id:siteId,paypal_subscription_id:subId,paypal_plan_id:subscription.plan_id,due_at:subscription.billing_info?.next_billing_time||'',paid_through_at:'',grace_expires_at:'',status:subscription.status==='ACTIVE'?'pending_first_payment':'pending_activation',last_verified_at:new Date().toISOString()});
+   const lastPayment=subscription.billing_info?.last_payment;
+   const actualPayment=Number(lastPayment?.amount?.value)>0&&Number.isFinite(Date.parse(lastPayment?.time||''))&&subscription.status==='ACTIVE';
+   const nextDue=subscription.billing_info?.next_billing_time||'';
+   await append('Subscriptions',{subscription_id:id,client_id:site.client_id,site_id:siteId,paypal_subscription_id:subId,paypal_plan_id:subscription.plan_id,due_at:nextDue,paid_through_at:actualPayment?nextDue:'',grace_expires_at:'',status:actualPayment?'active':subscription.status==='ACTIVE'?'pending_first_payment':'pending_activation',last_verified_at:new Date().toISOString()});
    await audit(id,'subscription','Linked verified PayPal billing agreement');
    return json(res,201,{subscriptionId:id,status:subscription.status});
   }
