@@ -1,5 +1,5 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Portal de clientes | HGM Group</title><meta name="robots" content="noindex,nofollow"><style>
-:root{font-family:Inter,system-ui,Arial,sans-serif;color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090c12;color:#f4f5f8}header{padding:24px max(20px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #303745}header a{color:#e1bf76;text-decoration:none}.logo{font-weight:900;letter-spacing:.09em}main{max-width:1120px;margin:0 auto;padding:55px 20px 100px}h1{font-size:clamp(32px,6vw,56px);line-height:1.1;margin:6px 0 14px}.lead{color:#b7bfcd;line-height:1.6;max-width:760px}.card{border:1px solid #323a49;background:#131823;border-radius:18px;padding:25px;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.grid .card{margin:0}label{display:block;color:#bdc8d8;font-size:13px;margin:15px 0 7px}input,select{width:100%;padding:12px;border:1px solid #424b5a;background:#0c1018;color:#fff;border-radius:9px}button,.btn{padding:12px 18px;background:#e1bf76;color:#171a22;border:0;border-radius:10px;font-weight:800;cursor:pointer;display:inline-block;text-decoration:none;margin-top:12px}button:disabled{opacity:.5;cursor:wait}.secondary{background:#323b4a;color:#fff}.small{font-size:13px;color:#aeb7c6}.status{color:#e1bf76;white-space:pre-wrap}table{width:100%;border-collapse:collapse;display:block;overflow:auto}td,th{padding:10px;border-bottom:1px solid #354054;text-align:left;white-space:nowrap}th{font-size:13px;color:#bbc5d5}.hidden{display:none}.tag{font-size:12px;border-radius:100px;padding:4px 10px;background:#263b40}#signin{min-height:45px}</style></head><body><header><a class="logo" href="/">HGM GROUP LLC</a><a href="/pagos.html">Pagos</a></header><main><p class="small">PORTAL SEGURO DE SERVICIOS</p><h1>Tu negocio, bajo control.</h1><p class="lead">Inicia sesión con la cuenta Google asociada a tu contrato para consultar tus sitios web, el estado de tus pagos y tus servicios de HGM Group.</p>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090c12;color:#f4f5f8}header{padding:24px max(20px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #303745}header a{color:#e1bf76;text-decoration:none}.logo{font-weight:900;letter-spacing:.09em}main{max-width:1120px;margin:0 auto;padding:55px 20px 100px}h1{font-size:clamp(32px,6vw,56px);line-height:1.1;margin:6px 0 14px}.lead{color:#b7bfcd;line-height:1.6;max-width:760px}.card{border:1px solid #323a49;background:#131823;border-radius:18px;padding:25px;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.grid .card{margin:0}label{display:block;color:#bdc8d8;font-size:13px;margin:15px 0 7px}input:not([type=checkbox]),select{width:100%;padding:12px;border:1px solid #424b5a;background:#0c1018;color:#fff;border-radius:9px}button,.btn{padding:12px 18px;background:#e1bf76;color:#171a22;border:0;border-radius:10px;font-weight:800;cursor:pointer;display:inline-block;text-decoration:none;margin-top:12px}button:disabled{opacity:.5;cursor:wait}.secondary{background:#323b4a;color:#fff}.small{font-size:13px;color:#aeb7c6}.status{color:#e1bf76;white-space:pre-wrap}table{width:100%;border-collapse:collapse;display:block;overflow:auto}td,th{padding:10px;border-bottom:1px solid #354054;text-align:left;white-space:nowrap}th{font-size:13px;color:#bbc5d5}.hidden{display:none}.tag{font-size:12px;border-radius:100px;padding:4px 10px;background:#263b40}#signin{min-height:45px}.toggles{display:grid;gap:12px}.toggles label{display:flex;align-items:center;gap:12px;margin:0;color:#f4f5f8}.toggles input{width:22px;height:22px;accent-color:#e1bf76}.control-reason{margin-top:12px}.controls-note{line-height:1.5}</style></head><body><header><a class="logo" href="/">HGM GROUP LLC</a><a href="/pagos.html">Pagos</a></header><main><p class="small">PORTAL SEGURO DE SERVICIOS</p><h1>Tu negocio, bajo control.</h1><p class="lead">Inicia sesión con la cuenta Google asociada a tu contrato para consultar tus sitios web, el estado de tus pagos y tus servicios de HGM Group.</p>
 <section class="card" id="login"><h2>Acceso de clientes</h2><div id="signin"></div><p class="small">Solamente las cuentas registradas por HGM Group pueden consultar información de sus servicios.</p><p id="login-error" class="status"></p></section>
 <section id="workspace" class="hidden"><div class="card"><span id="identity"></span> <button class="secondary" id="logout">Cerrar sesión</button></div><h2>Mis páginas y suscripciones</h2><div id="my-sites" class="grid"></div><p class="small">Tus pagos se procesan en PayPal. Una suscripción autorizada no equivale por sí sola a una mensualidad pagada. Si necesitas una factura o aclaración, contacta con HGM Group.</p><a href="/pagos.html" class="btn">Ver opciones de pago</a></section>
 <section id="admin" class="hidden"><h2>Administración HGM Group</h2><p class="small">Los proyectos se verifican contra Vercel antes de asociarlos; la suspensión queda desactivada por defecto.</p><div class="grid">
@@ -7,6 +7,7 @@
 <div class="card"><h3>Asignar proyecto Vercel</h3><label>Cliente</label><select id="client-select"></select><label>Selecciona un proyecto Vercel</label><button type="button" class="secondary" id="load-projects">Cargar proyectos</button><select id="project-select"><option value="">Selecciona o escribe el ID abajo</option></select><label>ID del proyecto (prj_...)</label><input id="site-project"><label>Equipo Vercel (team_...)</label><input id="site-team"><label>Dominio</label><input id="site-domain"><button id="assign-site">Asignar proyecto</button></div>
 <div class="card"><h3>Vincular PayPal</h3><label>Página</label><select id="site-select"></select><label>ID de suscripción (I-...)</label><input id="paypal-id"><p class="small">El titular y plan deben coincidir con PayPal. El ID del plan por sí solo no identifica al cliente.</p><button id="link-subscription">Vincular suscripción</button></div></div>
 <div class="card"><h3>Clientes</h3><table><thead><tr><th>Nombre</th><th>Correo</th><th>Estado</th></tr></thead><tbody id="clients-table"></tbody></table></div>
+<div class="card"><h3>Control de páginas</h3><p id="controls-note" class="small controls-note"></p><div id="site-controls" class="grid"></div></div>
 <div class="card"><h3>Proyectos asignados</h3><table><thead><tr><th>Dominio</th><th>Vercel ID</th><th>Estado</th><th>Cliente</th></tr></thead><tbody id="sites-table"></tbody></table></div>
 </section><p id="feedback" class="status" role="status" aria-live="polite"></p></main>
 <script src="https://accounts.google.com/gsi/client" async defer></script><script src="https://www.paypal.com/sdk/js?client-id=BAAwCX6mEx_L5kscgIvfBrTtIKa2FJnBj4aNzv7X_p-5m8BFXaPSqXzjmRhyV1UnYMwyEZuZOa9BlbVsQM&vault=true&intent=subscription" data-sdk-integration-source="button-factory"></script><script>
@@ -25,7 +26,7 @@ function siteCard(site){
  c.append(mk('p',sub?'Suscripción: '+sub.status:'Suscripción pendiente de vinculación'));
  if(sub?.due_at)c.append(mk('p','Próximo vencimiento registrado: '+new Date(sub.due_at).toLocaleDateString()));
  const a=document.createElement('a');a.href='/pagos.html';a.className='btn';a.textContent='Pagar activación ($50)';c.append(a);
- if(!sub){
+ if(!sub&&!current?.admin&&site.billing_exempt!=='TRUE'){
   const holder=document.createElement('div');holder.style.marginTop='15px';c.append(holder);
   if(window.paypal?.Buttons){
    paypal.Buttons({
@@ -43,7 +44,36 @@ function siteCard(site){
  return c;
 }
 function cell(tr,text){tr.append(mk('td',text))}
+function renderControls(data){
+ $('site-controls').replaceChildren();
+ $('controls-note').textContent=data.controlsConfigured?'Los cambios de publicación se envían a Vercel. La exención no cancela suscripciones PayPal. La automatización de suspensión sigue desactivada hasta completar las pruebas.':'Conexión de control pendiente. Los interruptores permanecerán bloqueados hasta configurar y verificar el servidor.';
+ for(const site of data.sites){
+  const card=mk('article','');card.className='card';card.append(mk('h3',site.domain||site.vercel_project_id));
+  card.append(mk('p','Estado registrado: '+(site.site_status||'Sin verificar')));
+  if(site.control_error)card.append(mk('p','Verificación pendiente en Vercel. Revisa el estado antes de reintentar.'));
+  const toggles=mk('div','');toggles.className='toggles';
+  const reason=document.createElement('input');reason.placeholder='Motivo del cambio (obligatorio)';reason.maxLength=500;reason.setAttribute('aria-label','Motivo para '+(site.domain||site.vercel_project_id));reason.className='control-reason';
+  for(const [field,label,invert] of [['manualSuspended','Página activa · control manual',true],['billingExempt','Exento de mensualidad',false],['automaticSuspension','Permitir suspensión automática',false]]){
+   const row=mk('label',''),toggle=document.createElement('input');toggle.type='checkbox';toggle.setAttribute('role','switch');toggle.checked=invert?!site.control[field]:site.control[field];toggle.disabled=!data.controlsConfigured||site.protected;
+   row.append(toggle,document.createTextNode(label));toggles.append(row);
+   toggle.onchange=async()=>{
+    const value=invert?!toggle.checked:toggle.checked;
+    if(reason.value.trim().length<5){toggle.checked=!toggle.checked;$('feedback').textContent='Escribe un motivo de al menos cinco caracteres.';reason.focus();return}
+    if(field==='manualSuspended'&&value&&!window.confirm('Suspender '+(site.domain||site.vercel_project_id)+' en Vercel. Solo un administrador podrá reactivarla. ¿Confirmas?')){toggle.checked=!toggle.checked;return}
+    toggle.disabled=true;
+    try{await api('site-control','POST',{siteId:site.site_id,field,value,expectedVersion:site.control.version,reason:reason.value.trim(),confirmProjectId:field==='manualSuspended'&&value?site.vercel_project_id:undefined});$('feedback').textContent='Cambio aplicado por el servidor.'}
+    catch(e){$('feedback').textContent=e.message}
+    await refresh().catch(e=>{$('feedback').textContent=e.message});
+   };
+  }
+  card.append(toggles,reason);
+  if(site.protected)card.append(mk('p','Servicio protegido. No se permite suspenderlo.'));
+  if(site.control.billingExempt&&data.subscriptions.some(s=>s.site_id===site.site_id))card.append(mk('p','Tiene una suscripción vinculada. La exención no detiene los cobros de PayPal; gestiona su cancelación por separado.'));
+  $('site-controls').append(card);
+ }
+}
 function renderAdmin(data){
+ renderControls(data);
  $('client-select').replaceChildren();$('site-select').replaceChildren();
  $('clients-table').replaceChildren();$('sites-table').replaceChildren();
  for(const c of data.clients){

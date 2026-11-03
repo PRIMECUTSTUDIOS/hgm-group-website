@@ -7,6 +7,9 @@
 const DAY=24*60*60*1000;
 const GRACE_DAYS=5;
 function evaluateBilling(input,now=new Date()){
+ if(input.protectedProject===true)return {state:'protected',maySuspend:false,reason:'PROTECTED_PROJECT',graceExpiresAt:null};
+ if(input.manualSuspended===true)return {state:'suspended_manual',maySuspend:false,reason:'MANUAL_BLOCK',graceExpiresAt:null};
+ if(input.billingExempt===true)return {state:'active',maySuspend:false,reason:'BILLING_EXEMPT',graceExpiresAt:null};
  const nowMs=new Date(now).getTime();
  const dueMs=new Date(input.dueAt).getTime();
  if(!Number.isFinite(nowMs)||!Number.isFinite(dueMs))throw Error('Invalid date');

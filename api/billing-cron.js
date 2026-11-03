@@ -1,6 +1,9 @@
 'use strict';
 const {json,env,uid,list,append,update,paypalGet,reqJson}=require('./_lib');
+const {automaticDecision}=require('../billing-system/site-policy');
 const DAY=86400000;
+// Live suspension remains disabled until sandbox, gateway and isolated-project E2E verification.
+const AUTOMATION_RELEASED=false;
 async function sendNotice(to,subject,text){
  const key=env('RESEND_API_KEY'),from=env('HGM_BILLING_FROM');
  const result=await reqJson('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({from,to:[to],subject,text})});return result.id;
@@ -24,6 +27,7 @@ module.exports=async function handler(req,res){
   for(const sub of subs){
    const site=sites.find(s=>s.site_id===sub.site_id),client=clients.find(c=>c.client_id===sub.client_id);
    if(!site||!client||!sub.paypal_subscription_id){results.push({id:sub.subscription_id,state:'review_required'});continue}
+   const decision=automaticDecision(site);
    try{
     const p=await paypalGet('/v1/billing/subscriptions/'+encodeURIComponent(sub.paypal_subscription_id));
     if(p.plan_id!==sub.paypal_plan_id||p.subscriber?.email_address?.toLowerCase()!==client.email.toLowerCase())throw Error('PayPal ownership mismatch');
@@ -33,14 +37,15 @@ module.exports=async function handler(req,res){
     const nextDue=p.billing_info?.next_billing_time||'';
     if(evidence){
       const restored=sub.status==='suspended'&&site.site_status==='suspended';
-      // Never auto-resume a manually suspended site without a verified matching payment.
-      if(restored&&process.env.HGM_AUTO_SUSPEND==='true'){
+      // Manual blocks are never lifted by payment reconciliation.
+      if(restored&&AUTOMATION_RELEASED&&process.env.HGM_AUTO_SUSPEND==='true'&&site.manual_suspended!=='TRUE'){
         await vercelResume(site);
         await update('Sites',site.__row,{...site,site_status:'active'});
       }
       await update('Subscriptions',sub.__row,{...sub,status:'active',due_at:nextDue||sub.due_at,paid_through_at:nextDue||new Date(paidTime).toISOString(),last_verified_at:new Date().toISOString()});
       results.push({id:sub.subscription_id,state:'active'});continue;
     }
+    if(['protected','manual_block','exempt'].includes(decision)){results.push({id:sub.subscription_id,state:decision});continue}
     if(!Number.isFinite(due)){results.push({id:sub.subscription_id,state:'review_required',reason:'No verified due date'});continue}
     const overdue=now-due;
     if(overdue<0){
@@ -61,7 +66,7 @@ module.exports=async function handler(req,res){
     const allowlisted=(process.env.HGM_SUSPEND_PROJECT_IDS||'').split(',').map(x=>x.trim()).includes(site.vercel_project_id);
     const eligible=overdue>=5*DAY&&finalNotice&&site.managed_by_hgm==='TRUE'&&site.suspension_enabled==='TRUE'&&site.site_status!=='suspended'&&allowlisted&&p.status!=='ACTIVE'&&p.status!=='APPROVAL_PENDING';
     // ACTIVE PayPal agreements can contain retried payments: leave online for review.
-    if(eligible&&process.env.HGM_AUTO_SUSPEND==='true'){
+    if(eligible&&AUTOMATION_RELEASED&&process.env.HGM_AUTO_SUSPEND==='true'){
       await vercelPause(site);
       await update('Sites',site.__row,{...site,site_status:'suspended'});
       await update('Subscriptions',sub.__row,{...sub,status:'suspended',grace_expires_at:new Date(due+5*DAY).toISOString(),last_verified_at:new Date().toISOString()});

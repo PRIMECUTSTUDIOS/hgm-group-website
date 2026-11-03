@@ -1,5 +1,7 @@
 'use strict';
 const {json,fail,env,uid,list,append,update,googleUser,isAdmin,paypalGet,verifyProject,reqJson}=require('./_lib');
+const {controlSite,controlsConfigured}=require('./_controls');
+const {policy,protectedProject}=require('../billing-system/site-policy');
 module.exports=async function handler(req,res){
  try{
   if(req.method==='GET'&&req.query.action==='config')return json(res,200,{googleClientId:env('GOOGLE_CLIENT_ID'),paypalPlanId:'P-5SD11848RB0454849NLUV7CA'});
@@ -19,13 +21,17 @@ module.exports=async function handler(req,res){
    if(req.query.action==='admin'){
     if(!admin)throw fail('Not authorized',403);
     const [payments,notices]=await Promise.all([list('Payments'),list('Notices')]);
-    return json(res,200,{clients,sites,subscriptions,payments,notices});
+    const inventory=await list('ProjectInventory');
+    return json(res,200,{clients,sites:sites.map(s=>({...s,control:policy(s),protected:protectedProject(s,inventory)})),subscriptions,payments,notices,controlsConfigured:controlsConfigured(),automaticSuspensionEnabled:false});
    }
    throw fail('Unknown action',404);
   }
   if(req.method!=='POST')throw fail('Method not allowed',405);
   if(!admin&&req.query.action!=='claim-subscription')throw fail('Administrator authorization required',403);
   const body=typeof req.body==='object'?req.body:JSON.parse(req.body||'{}');
+  if(req.query.action==='site-control'){
+   return json(res,200,await controlSite(user.email,{siteId:body.siteId,field:body.field,value:body.value,expectedVersion:body.expectedVersion,reason:body.reason,confirmProjectId:body.confirmProjectId}));
+  }
   const audit=async(entity,kind,reason)=>append('Audit',{event_id:uid(),entity_type:kind,entity_id:entity,actor:user.email,event_name:req.query.action,event_at:new Date().toISOString(),reason});
   if(req.query.action==='claim-subscription'){
    const siteId=String(body.siteId||''),subId=String(body.paypalSubscriptionId||'');
@@ -58,9 +64,10 @@ module.exports=async function handler(req,res){
    if(!/^prj_[a-zA-Z0-9]+$/.test(projectId)||!/^team_[a-zA-Z0-9]+$/.test(teamId))throw fail('Exact Vercel project and team IDs are required');
    const clients=await list('Clients');if(!clients.some(c=>c.client_id===clientId))throw fail('Client not found',404);
    const sites=await list('Sites');if(sites.some(s=>s.vercel_project_id===projectId))throw fail('Project is already assigned',409);
+   if(teamId!==env('HGM_VERCEL_TEAM_ID'))throw fail('Project must belong to the HGM team',403);
    const project=await verifyProject(projectId,teamId);
-   if(project.name==='hgm-group')throw fail('Cannot enroll HGM billing portal in suspension',403);
-   const id=uid();await append('Sites',{site_id:id,client_id:clientId,domain:String(body.domain||'').trim().toLowerCase(),vercel_project_id:projectId,vercel_team_id:teamId,managed_by_hgm:'TRUE',suspension_enabled:'FALSE',site_status:'pending_payment'});
+   if(project.name==='hgm-group'||protectedProject({vercel_project_id:projectId},await list('ProjectInventory')))throw fail('Cannot enroll HGM billing portal in suspension',403);
+   const id=uid();await append('Sites',{site_id:id,client_id:clientId,domain:String(body.domain||'').trim().toLowerCase(),vercel_project_id:projectId,vercel_team_id:teamId,managed_by_hgm:'TRUE',suspension_enabled:'FALSE',manual_suspended:'FALSE',billing_exempt:'FALSE',control_version:'0',site_status:'pending_payment'});
    await audit(id,'site','Assigned verified Vercel project '+projectId);return json(res,201,{siteId:id});
   }
   if(req.query.action==='link-subscription'){
@@ -68,7 +75,7 @@ module.exports=async function handler(req,res){
    if(!/^I-[A-Z0-9]+$/.test(subId))throw fail('PayPal subscription ID must begin I-');
    const sites=await list('Sites'),site=sites.find(s=>s.site_id===siteId);
    if(!site)throw fail('Site not found',404);
-   if((await list('Subscriptions')).some(s=>s.paypal_subscription_id===subId))throw fail('Subscription already linked',409);
+   if((await list('Subscriptions')).some(s=>s.paypal_subscription_id===subId||s.site_id===siteId))throw fail('Subscription already linked',409);
    const customer=(await list('Clients')).find(c=>c.client_id===site.client_id);
    const subscription=await paypalGet('/v1/billing/subscriptions/'+encodeURIComponent(subId));
    if(subscription.plan_id!=='P-5SD11848RB0454849NLUV7CA')throw fail('PayPal plan does not match HGM plan',409);

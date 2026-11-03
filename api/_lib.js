@@ -7,7 +7,7 @@ const json=(res,code,payload)=>{res.statusCode=code;res.setHeader('Content-Type'
 const fail=(message,code=400)=>Object.assign(new Error(message),{status:code});
 function env(name){if(!process.env[name])throw fail('Missing server configuration: '+name,503);return process.env[name]}
 async function reqJson(url,options={}){
- const r=await fetch(url,options);const body=await r.text();let val;try{val=JSON.parse(body)}catch{val={raw:body.slice(0,200)}}
+ const r=await fetch(url,{signal:AbortSignal.timeout(15000),...options});const body=await r.text();let val;try{val=JSON.parse(body)}catch{val={raw:body.slice(0,200)}}
  if(!r.ok)throw fail('Upstream service error ('+r.status+')',502);
  return val;
 }
@@ -25,26 +25,27 @@ async function sheetsToken(){
 async function sheetRequest(path,method='GET',body){
  const token=await sheetsToken();return reqJson(BASE+encodeURIComponent(env('HGM_BILLING_SHEET_ID'))+'/'+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
 }
-function a1(name){return encodeURIComponent("'"+name+"'!A1:Z1000")}
+function columnName(n){let out='';while(n){n--;out=String.fromCharCode(65+n%26)+out;n=Math.floor(n/26)}return out}
+function a1(name){return encodeURIComponent("'"+name+"'!A1:Z")}
 function valuesObject(rows){const headers=rows[0]||[];return rows.slice(1).map((row,i)=>Object.assign({__row:i+2},Object.fromEntries(headers.map((col,j)=>[col,row[j]||'']))));}
 async function list(sheet){const v=await sheetRequest('values/'+a1(sheet));return valuesObject(v.values||[])}
 async function append(sheet,record){
  const hdr=(await sheetRequest('values/'+encodeURIComponent("'"+sheet+"'!A1:Z1"))).values?.[0]||[];
  if(!hdr.length)throw fail('Ledger schema unavailable',503);
  const values=hdr.map(k=>String(record[k]??''));
- await sheetRequest('values/'+encodeURIComponent("'"+sheet+"'!A1:Z1000")+':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS','POST',{values:[values]});
+ await sheetRequest('values/'+encodeURIComponent("'"+sheet+"'!A1:Z")+':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS','POST',{values:[values]});
 }
 async function update(sheet,row,record){
  if(!Number.isInteger(row)||row<2)throw fail('Invalid sheet row');
  const hdr=(await sheetRequest('values/'+encodeURIComponent("'"+sheet+"'!A1:Z1"))).values?.[0]||[];
  const values=hdr.map(k=>String(record[k]??''));
- await sheetRequest('values/'+encodeURIComponent("'"+sheet+"'!A"+row+':'+String.fromCharCode(64+hdr.length)+row)+'?valueInputOption=RAW','PUT',{values:[values]});
+ await sheetRequest('values/'+encodeURIComponent("'"+sheet+"'!A"+row+':'+columnName(hdr.length)+row)+'?valueInputOption=RAW','PUT',{values:[values]});
 }
 async function googleUser(req){
  const header=req.headers.authorization||'';if(!header.startsWith('Bearer '))throw fail('Login required',401);
  const raw=header.slice(7);if(raw.length>6000)throw fail('Invalid token',401);
  const v=await reqJson('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(raw));
- if(v.aud!==env('GOOGLE_CLIENT_ID')||!['accounts.google.com','https://accounts.google.com'].includes(v.iss)||v.email_verified!=='true')throw fail('Login verification failed',401);
+ if(v.aud!==env('GOOGLE_CLIENT_ID')||!['accounts.google.com','https://accounts.google.com'].includes(v.iss)||![true,'true'].includes(v.email_verified)||!Number.isFinite(Number(v.exp))||Number(v.exp)*1000<=Date.now()||typeof v.email!=='string')throw fail('Login verification failed',401);
  return {email:v.email.toLowerCase(),sub:v.sub};
 }
 function isAdmin(u){return (process.env.HGM_ADMIN_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).includes(u.email)}

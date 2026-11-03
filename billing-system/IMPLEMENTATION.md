@@ -1,6 +1,6 @@
 # HGM Group – Client Billing Portal: implementation contract
 
-Status: SPECIFICATION ONLY – not deployed. This file does not enable any login, billing webhook, notifications, suspension, or reinstatement.
+Status: PARTIALLY IMPLEMENTED. See STATUS.md for the current verified state, dependencies and tests. The remaining sections are the original implementation contract, not a claim of completion.
 
 ## Existing checkout identifiers
 One-time activation: https://www.paypal.com/ncp/payment/W7CJZSQGXF464 (verify in PayPal before considering payment completed).
