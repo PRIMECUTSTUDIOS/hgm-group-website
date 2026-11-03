@@ -16,7 +16,8 @@ async function vercelResume(site){
 }
 module.exports=async function handler(req,res){
  if(req.method!=='GET')return json(res,405,{error:'Method not allowed'});
- if(!process.env.CRON_SECRET||req.headers.authorization!=='Bearer '+process.env.CRON_SECRET)return json(res,401,{error:'Unauthorized'});
+ if(!process.env.CRON_SECRET)return json(res,200,{configured:false,processed:0});
+ if(req.headers.authorization!=='Bearer '+process.env.CRON_SECRET)return json(res,401,{error:'Unauthorized'});
  try{
   const [subs,sites,clients,notices]=await Promise.all([list('Subscriptions'),list('Sites'),list('Clients'),list('Notices')]);
   const now=Date.now(),results=[];
