@@ -80,6 +80,8 @@ $('link-subscription').onclick=()=>mutate('link-subscription',{siteId:$('site-se
 $('logout').onclick=()=>{token='';current=null;$('workspace').classList.add('hidden');$('admin').classList.add('hidden');$('login').classList.remove('hidden');google.accounts.id.disableAutoSelect()};
 async function boot(){
  try{
+  const readiness=await fetch('/api/setup-status',{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null);
+  if(readiness&&!readiness.loginEnabled){$('login-error').textContent='El acceso privado todavía no está habilitado. Puedes contratar el servicio en la página de pagos; HGM Group activará tu cuenta cuando complete la verificación segura.';return}
   const r=await fetch('/api/portal?action=config',{cache:'no-store'});if(!r.ok)throw Error('El acceso de clientes todavía no está configurado en el servidor.');
   const data=await r.json();
   if(!window.google?.accounts?.id){setTimeout(boot,500);return}
