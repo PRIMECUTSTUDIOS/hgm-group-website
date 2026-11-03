@@ -24,9 +24,28 @@ module.exports=async function handler(req,res){
    throw fail('Unknown action',404);
   }
   if(req.method!=='POST')throw fail('Method not allowed',405);
-  if(!admin)throw fail('Administrator authorization required',403);
+  if(!admin&&req.query.action!=='claim-subscription')throw fail('Administrator authorization required',403);
   const body=typeof req.body==='object'?req.body:JSON.parse(req.body||'{}');
   const audit=async(entity,kind,reason)=>append('Audit',{event_id:uid(),entity_type:kind,entity_id:entity,actor:user.email,event_name:req.query.action,event_at:new Date().toISOString(),reason});
+  if(req.query.action==='claim-subscription'){
+   const siteId=String(body.siteId||''),subId=String(body.paypalSubscriptionId||'');
+   if(!/^I-[A-Z0-9]+$/.test(subId))throw fail('Invalid PayPal subscription ID');
+   const [sites,clients,existing]=await Promise.all([list('Sites'),list('Clients'),list('Subscriptions')]);
+   const site=sites.find(s=>s.site_id===siteId);
+   const customer=clients.find(c=>c.client_id===site?.client_id);
+   if(!site||!customer||customer.email.toLowerCase()!==user.email)throw fail('This site is not associated with your account',403);
+   if(existing.some(s=>s.site_id===siteId||s.paypal_subscription_id===subId))throw fail('Site or subscription is already assigned',409);
+   const agreement=await paypalGet('/v1/billing/subscriptions/'+encodeURIComponent(subId));
+   if(agreement.plan_id!=='P-5SD11848RB0454849NLUV7CA'||agreement.subscriber?.email_address?.toLowerCase()!==user.email)throw fail('Subscription owner or plan did not match',409);
+   const last=agreement.billing_info?.last_payment;
+   const paid=agreement.status==='ACTIVE'&&Number(last?.amount?.value)>0&&Number.isFinite(Date.parse(last?.time||''));
+   const next=agreement.billing_info?.next_billing_time||'';
+   const newId=uid();
+   await append('Subscriptions',{subscription_id:newId,client_id:customer.client_id,site_id:siteId,paypal_subscription_id:subId,paypal_plan_id:agreement.plan_id,due_at:next,paid_through_at:paid?next:'',status:paid?'active':'pending_first_payment',last_verified_at:new Date().toISOString()});
+   await update('Sites',site.__row,{...site,billing_subscription_id:newId});
+   await audit(newId,'subscription','Self-service PayPal subscription ownership verified');
+   return json(res,201,{subscriptionId:newId,status:paid?'active':'pending_first_payment'});
+  }
   if(req.query.action==='add-client'){
    const email=String(body.email||'').trim().toLowerCase(),name=String(body.name||'').trim();
    if(!/^\S+@\S+\.\S+$/.test(email)||name.length<2)throw fail('Valid client email and name required');
