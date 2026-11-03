@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "crons": [
+    {
+      "path": "/api/billing-cron",
+      "schedule": "0 15 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/clientes",
+      "destination": "/clientes.html"
+    },
+    {
+      "source": "/pagos",
+      "destination": "/pagos.html"
+    }
+  ]
+}
