@@ -1,5 +1,5 @@
 'use strict';
-const {json,fail,env,uid,list,append,update,googleUser,isAdmin,paypalGet,verifyProject}=require('./_lib');
+const {json,fail,env,uid,list,append,update,googleUser,isAdmin,paypalGet,verifyProject,reqJson}=require('./_lib');
 module.exports=async function handler(req,res){
  try{
   if(req.method==='GET'&&req.query.action==='config')return json(res,200,{googleClientId:env('GOOGLE_CLIENT_ID'),paypalPlanId:'P-5SD11848RB0454849NLUV7CA'});
@@ -9,6 +9,12 @@ module.exports=async function handler(req,res){
    const [clients,sites,subscriptions]=await Promise.all([list('Clients'),list('Sites'),list('Subscriptions')]);
    if(req.query.action==='me'){
     return json(res,200,{email:user.email,admin,sites:sites.filter(x=>admin||clients.some(c=>c.client_id===x.client_id&&c.email.toLowerCase()===user.email)).map(x=>({...x,subscription:subscriptions.find(s=>s.site_id===x.site_id)||null}))});
+   }
+   if(req.query.action==='vercel-projects'){
+    if(!admin)throw fail('Not authorized',403);
+    const team=env('HGM_VERCEL_TEAM_ID'),token=env('VERCEL_API_TOKEN');
+    const payload=await reqJson('https://api.vercel.com/v9/projects?limit=100&teamId='+encodeURIComponent(team),{headers:{Authorization:'Bearer '+token}});
+    return json(res,200,{teamId:team,projects:(payload.projects||[]).filter(p=>p.id&&p.name).map(p=>({id:p.id,name:p.name}))});
    }
    if(req.query.action==='admin'){
     if(!admin)throw fail('Not authorized',403);
