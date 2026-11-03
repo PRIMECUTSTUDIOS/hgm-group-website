@@ -43,7 +43,13 @@ module.exports=async function handler(req,res){
     }
     if(!Number.isFinite(due)){results.push({id:sub.subscription_id,state:'review_required',reason:'No verified due date'});continue}
     const overdue=now-due;
-    if(overdue<0){results.push({id:sub.subscription_id,state:'not_due'});continue}
+    if(overdue<0){
+      if((sub.status==='pending_first_payment'||sub.status==='pending_activation')&&p.status==='ACTIVE'&&Number.isFinite(paidTime)&&Number(p.billing_info?.last_payment?.amount?.value)>0){
+        await update('Subscriptions',sub.__row,{...sub,status:'active',paid_through_at:sub.due_at,last_verified_at:new Date().toISOString()});
+        results.push({id:sub.subscription_id,state:'active'});continue;
+      }
+      results.push({id:sub.subscription_id,state:'not_due'});continue;
+    }
     const relevantNotices=notices.filter(n=>n.subscription_id===sub.subscription_id&&Date.parse(n.sent_at)>=due);
     const days=Math.floor(overdue/DAY),kind=days>=4?'final_warning':days>=2?'reminder':'overdue';
     if(!relevantNotices.some(n=>n.notice_type===kind&&n.delivery_status==='sent')){
