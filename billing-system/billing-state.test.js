@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {evaluateBilling}=require('./billing-state.js');
+const due='2026-11-01T00:00:00.000Z';
+const good={dueAt:due,managedByHGM:true,suspensionEnabled:true,paypalVerified:true,verifiedAt:'2026-11-07T00:00:00.000Z',webhookHealthy:true,invoicesReconciled:true,ownershipVerified:true,noticeDelivered:true,paymentConfirmed:false,hasDispute:false,hasExtension:false};
+assert.equal(evaluateBilling(good,'2026-11-04T00:00:00Z').maySuspend,false);
+assert.equal(evaluateBilling(good,'2026-11-07T00:00:00Z').state,'eligible_for_manual_review');
+assert.equal(evaluateBilling({...good,webhookHealthy:false},'2026-11-07T00:00:00Z').state,'review_required');
+assert.equal(evaluateBilling({...good,managedByHGM:false},'2026-11-07T00:00:00Z').state,'review_required');
+assert.equal(evaluateBilling({...good,paymentConfirmed:true,paidThroughAt:'2026-12-01T00:00:00.000Z'},'2026-11-07T00:00:00Z').state,'active');
+console.log('Billing safety tests passed');
