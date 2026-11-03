@@ -4,7 +4,7 @@
 <section id="workspace" class="hidden"><div class="card"><span id="identity"></span> <button class="secondary" id="logout">Cerrar sesión</button></div><h2>Mis páginas y suscripciones</h2><div id="my-sites" class="grid"></div><p class="small">Tus pagos se procesan en PayPal. Una suscripción autorizada no equivale por sí sola a una mensualidad pagada. Si necesitas una factura o aclaración, contacta con HGM Group.</p><a href="/pagos.html" class="btn">Ver opciones de pago</a></section>
 <section id="admin" class="hidden"><h2>Administración HGM Group</h2><p class="small">Los proyectos se verifican contra Vercel antes de asociarlos; la suspensión queda desactivada por defecto.</p><div class="grid">
 <div class="card"><h3>Registrar cliente</h3><label>Nombre</label><input id="client-name" autocomplete="off"><label>Correo Google del cliente</label><input id="client-email" type="email" autocomplete="off"><button id="add-client">Crear cliente</button></div>
-<div class="card"><h3>Asignar proyecto Vercel</h3><label>Cliente</label><select id="client-select"></select><label>Proyecto Vercel (prj_...)</label><input id="site-project"><label>Equipo Vercel (team_...)</label><input id="site-team"><label>Dominio</label><input id="site-domain"><button id="assign-site">Asignar proyecto</button></div>
+<div class="card"><h3>Asignar proyecto Vercel</h3><label>Cliente</label><select id="client-select"></select><label>Selecciona un proyecto Vercel</label><button type="button" class="secondary" id="load-projects">Cargar proyectos</button><select id="project-select"><option value="">Selecciona o escribe el ID abajo</option></select><label>ID del proyecto (prj_...)</label><input id="site-project"><label>Equipo Vercel (team_...)</label><input id="site-team"><label>Dominio</label><input id="site-domain"><button id="assign-site">Asignar proyecto</button></div>
 <div class="card"><h3>Vincular PayPal</h3><label>Página</label><select id="site-select"></select><label>ID de suscripción (I-...)</label><input id="paypal-id"><p class="small">El titular y plan deben coincidir con PayPal. El ID del plan por sí solo no identifica al cliente.</p><button id="link-subscription">Vincular suscripción</button></div></div>
 <div class="card"><h3>Clientes</h3><table><thead><tr><th>Nombre</th><th>Correo</th><th>Estado</th></tr></thead><tbody id="clients-table"></tbody></table></div>
 <div class="card"><h3>Proyectos asignados</h3><table><thead><tr><th>Dominio</th><th>Vercel ID</th><th>Estado</th><th>Cliente</th></tr></thead><tbody id="sites-table"></tbody></table></div>
@@ -51,6 +51,14 @@ async function mutate(action,data){
  catch(e){$('feedback').textContent=e.message}
 }
 $('add-client').onclick=()=>mutate('add-client',{name:$('client-name').value,email:$('client-email').value});
+$('load-projects').onclick=async()=>{
+ $('feedback').textContent='Cargando proyectos...';
+ try{const data=await api('vercel-projects');$('project-select').replaceChildren();
+ for(const p of data.projects){if(p.name==='hgm-group')continue;const o=document.createElement('option');o.value=p.id;o.textContent=p.name+' ('+p.id+')';$('project-select').append(o)}
+ $('site-team').value=data.teamId;$('site-project').value=$('project-select').value;$('feedback').textContent='Selecciona el sitio que corresponde al cliente.';
+ }catch(e){$('feedback').textContent=e.message}
+};
+$('project-select').onchange=()=>{$('site-project').value=$('project-select').value};
 $('assign-site').onclick=()=>mutate('assign-site',{clientId:$('client-select').value,vercelProjectId:$('site-project').value.trim(),vercelTeamId:$('site-team').value.trim(),domain:$('site-domain').value.trim()});
 $('link-subscription').onclick=()=>mutate('link-subscription',{siteId:$('site-select').value,paypalSubscriptionId:$('paypal-id').value.trim()});
 $('logout').onclick=()=>{token='';current=null;$('workspace').classList.add('hidden');$('admin').classList.add('hidden');$('login').classList.remove('hidden');google.accounts.id.disableAutoSelect()};
