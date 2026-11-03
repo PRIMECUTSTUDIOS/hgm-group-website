@@ -9,7 +9,7 @@
 <div class="card"><h3>Clientes</h3><table><thead><tr><th>Nombre</th><th>Correo</th><th>Estado</th></tr></thead><tbody id="clients-table"></tbody></table></div>
 <div class="card"><h3>Proyectos asignados</h3><table><thead><tr><th>Dominio</th><th>Vercel ID</th><th>Estado</th><th>Cliente</th></tr></thead><tbody id="sites-table"></tbody></table></div>
 </section><p id="feedback" class="status" role="status" aria-live="polite"></p></main>
-<script src="https://accounts.google.com/gsi/client" async defer></script><script>
+<script src="https://accounts.google.com/gsi/client" async defer></script><script src="https://www.paypal.com/sdk/js?client-id=BAAwCX6mEx_L5kscgIvfBrTtIKa2FJnBj4aNzv7X_p-5m8BFXaPSqXzjmRhyV1UnYMwyEZuZOa9BlbVsQM&vault=true&intent=subscription" data-sdk-integration-source="button-factory"></script><script>
 let token='',current=null;
 const $=id=>document.getElementById(id);
 const mk=(tag,value)=>{const e=document.createElement(tag);e.textContent=String(value??'');return e};
@@ -24,7 +24,23 @@ function siteCard(site){
  const sub=site.subscription;
  c.append(mk('p',sub?'Suscripción: '+sub.status:'Suscripción pendiente de vinculación'));
  if(sub?.due_at)c.append(mk('p','Próximo vencimiento registrado: '+new Date(sub.due_at).toLocaleDateString()));
- const a=document.createElement('a');a.href='/pagos.html';a.className='btn';a.textContent='Gestionar pagos';c.append(a);return c;
+ const a=document.createElement('a');a.href='/pagos.html';a.className='btn';a.textContent='Pagar activación ($50)';c.append(a);
+ if(!sub){
+  const holder=document.createElement('div');holder.style.marginTop='15px';c.append(holder);
+  if(window.paypal?.Buttons){
+   paypal.Buttons({
+    style:{shape:'rect',color:'gold',layout:'vertical',label:'subscribe'},
+    createSubscription:(_,actions)=>actions.subscription.create({plan_id:'P-5SD11848RB0454849NLUV7CA'}),
+    onApprove:async data=>{
+      try{const result=await api('claim-subscription','POST',{siteId:site.site_id,paypalSubscriptionId:data.subscriptionID});
+       $('feedback').textContent=result.status==='active'?'Suscripción vinculada y pago comprobado.':'Suscripción vinculada. Pendiente de confirmar primer pago.';
+       await refresh();
+      }catch(e){$('feedback').textContent='PayPal autorizó la suscripción, pero no se pudo vincular a tu cuenta: '+e.message+'. Contacta a HGM Group indicando tu ID: '+data.subscriptionID}
+    },onError:()=>{$('feedback').textContent='Hubo un problema al iniciar la suscripción con PayPal.'}
+   }).render(holder).catch(()=>{holder.textContent='No se pudo cargar el botón de PayPal.'});
+  }else holder.textContent='PayPal no está disponible. Prueba otro navegador.';
+ }
+ return c;
 }
 function cell(tr,text){tr.append(mk('td',text))}
 function renderAdmin(data){
