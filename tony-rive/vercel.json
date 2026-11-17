@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "https://tony-rive-music-bj9x14nhe-bdg-dev.vercel.app/admin"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "https://tony-rive-music-bj9x14nhe-bdg-dev.vercel.app/assets/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://tony-rive-music-bj9x14nhe-bdg-dev.vercel.app/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ]
+}
